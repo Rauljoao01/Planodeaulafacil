@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Plano de Aula Diário (criado por Raul João)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom right, #e0f2fe, #ffffff, #e0f2fe); /* Subtle light blue gradient */
+            color: #333;
+            min-height: 100vh; /* Ensure body takes full height */
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem; /* Increased padding */
+            background-color: #ffffff;
+            border-radius: 1rem; /* More rounded corners */
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05); /* Stronger shadow */
+        }
+        .form-group {
+            margin-bottom: 1rem; /* Slightly increased margin */
+            padding: 1rem; /* Padding for card-like effect */
+            background-color: #fdfdfd; /* Off-white background for form groups */
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow for form groups */
+            border: 1px solid #e2e8f0; /* Light border */
+        }
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 0.4rem; /* Adjusted margin */
+            display: block;
+            color: #4a5568;
+            font-size: 1rem; /* Slightly larger font */
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.75rem 1rem; /* Increased padding */
+            border: 1px solid #cbd5e0;
+            border-radius: 0.65rem; /* Slightly more rounded */
+            font-size: 1rem; /* Slightly larger font */
+            background-color: #edf2f7;
+            color: #2d3748;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3); /* Stronger focus shadow */
+        }
+        button {
+            padding: 0.9rem 1.4rem; /* Increased button padding */
+            border-radius: 0.65rem; /* Slightly more rounded */
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .btn-primary {
+            background-image: linear-gradient(to right, #6366f1, #818cf8); /* Indigo gradient */
+            color: #ffffff;
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4); /* Stronger shadow */
+        }
+        .btn-primary:hover {
+            background-image: linear-gradient(to right, #4f46e5, #6366f1);
+            transform: translateY(-3px) scale(1.02); /* Slight lift and scale */
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5);
+        }
+        .btn-secondary {
+            background-color: #f0f4f8; /* Lighter secondary */
+            color: #4a5568;
+            border: 1px solid #cdd5df;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+        }
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .btn-success {
+            background-color: #22c55e;
+            color: #ffffff;
+        }
+        .btn-success:hover {
+            background-color: #16a34a;
+            transform: translateY(-2px);
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- Plan Output Styling --- */
+        #planOutput h2 {
+            font-size: 1.65rem; /* Slightly larger */
+            font-weight: 700;
+            text-align: center;
+            margin-top: 2.5rem; /* Increased margin */
+            margin-bottom: 1.25rem;
+            color: #2d3748;
+        }
+
+        /* Header Grid - No borders, mimicking the image */
+        .plan-header-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem 2.5rem; /* Increased gap */
+            margin-bottom: 2rem; /* Increased margin */
+            font-size: 1rem; /* Slightly larger for readability */
+            padding: 0 1.25rem; /* Increased padding */
+        }
+        .plan-header-item {
+            padding: 0.3rem 0; /* Minimal padding */
+            line-height: 1.5;
+        }
+        .plan-header-item strong {
+            display: inline;
+            color: #2d3748;
+            margin-right: 0.35rem;
+        }
+        .plan-header-objectives {
+            grid-column: span 2;
+            padding: 0.75rem 0;
+        }
+        .plan-header-objectives strong {
+            display: block;
+            margin-bottom: 0.65rem;
+        }
+        .plan-header-objectives ul {
+            list-style-type: disc;
+            margin-left: 1.75rem;
+            padding-left: 0;
+        }
+        .plan-header-objectives ul li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* Adjust for smaller screens for header */
+        @media (max-width: 767px) {
+            .plan-header-grid {
+                grid-template-columns: 1fr;
+                gap: 0.4rem 0;
+            }
+            .plan-header-objectives {
+                grid-column: span 1;
+            }
+        }
+
+        /* Main Plan Table - Body, Exercises, TPC */
+        .plan-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem; /* Increased margin */
+            border: 2px solid #000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); /* Stronger shadow */
+            background-color: #fefefe; /* Near white background for table cells */
+        }
+        .plan-table th, .plan-table td {
+            border: 1px solid #000;
+            padding: 0.8rem; /* Increased padding */
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.9rem; /* Slightly larger font */
+        }
+        .plan-table th {
+            background-color: #dbeafe; /* Light blue header background */
+            font-weight: 700;
+            color: #1e3a8a; /* Darker blue text */
+            white-space: nowrap;
+        }
+        .plan-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .plan-table ul {
+            list-style-type: disc;
+            margin-left: 1.5rem; /* Adjusted margin */
+            padding-left: 0;
+            font-size: 0.85rem; /* Slightly larger font for list items */
+        }
+        .plan-table ul li {
+            margin-bottom: 0.25rem; /* Adjusted margin for list items */
+        }
+        /* Specific column widths for the main table to match image */
+        .plan-table th:nth-child(1), .plan-table td:nth-child(1) { width: 8%; }
+        .plan-table th:nth-child(2), .plan-table td:nth-child(2) { width: 12%; }
+        .plan-table th:nth-child(3), .plan-table td:nth-child(3) { width: 20%; }
+        .plan-table th:nth-child(4), .plan-table td:nth-child(4) { width: 20%; }
+        .plan-table th:nth-child(5), .plan-table td:nth-child(5) { width: 20%; }
+        .plan-table th:nth-child(6), .plan-table td:nth-child(6) { width: 10%; }
+        .plan-table th:nth-child(7), .plan-table td:nth-child(7) { width: 10%; }
+
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 25px; /* Increased padding */
+            border: 1px solid #888;
+            width: 90%; /* Wider modal */
+            max-width: 700px; /* Max width */
+            border-radius: 1rem; /* More rounded */
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 32px; /* Larger close button */
+            font-weight: bold;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+        }
+        .modal-body ul {
+            list-style-type: disc;
+            margin-left: 25px;
+            margin-bottom: 15px;
+        }
+        .modal-body h3 {
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+
+        /* Creator Credits Styling */
+        .creator-credits {
+            margin-top: 2.5rem;
+            padding: 1.25rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6b7280;
+            border-top: 1px solid #e2e8f0;
+        }
+        .creator-credits strong {
+            color: #4a5568;
+        }
+
+        /* Contribution Note Styling */
+        .contribution-note {
+            margin-top: 3rem; /* More space from previous section */
+            padding: 1.5rem; /* Increased padding */
+            background-color: #fffbeb; /* Light yellow background */
+            border: 1px solid #fcd34d; /* Yellow border */
+            border-radius: 1rem; /* Rounded corners */
+            box-shadow: 0 5px 15px rgba(252, 211, 77, 0.2); /* Yellowish shadow */
+            color: #92400e; /* Darker yellow/brown text */
+        }
+        .contribution-note h3 {
+            color: #b45309; /* Even darker yellow/brown for heading */
+        }
+        .contribution-note .text-green-600 { /* Keep green for numbers */
+            color: #16a34a;
+        }
+
+
+        /* Print specific styles for page breaks and landscape */
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 1.5cm;
+            }
+            body {
+                background-color: #fff;
+                margin: 0;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                max-width: none;
+                width: auto;
+                height: auto;
+                page-break-after: always;
+            }
+            .form-group, .flex.flex-col.sm\:flex-row.justify-center.gap-4.mb-8,
+            .flex.flex-col.sm\:flex-row.justify-center.gap-4.mt-8,
+            #errorMessage, .welcome-note { /* Hide welcome note in print */
+                display: none;
+            }
+            #planOutput {
+                display: block;
+                width: 100%;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            .plan-header-grid, .plan-table {
+                box-shadow: none;
+            }
+            .plan-table {
+                page-break-inside: auto;
+            }
+            .suggest-activities-btn {
+                display: none;
+            }
+            h2 {
+                page-break-before: avoid;
+            }
+            .creator-credits {
+                page-break-before: avoid;
+            }
+            .contribution-note {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Welcome Note -->
+    <div id="welcomeNote" class="container text-center py-4 bg-blue-100 text-blue-800 rounded-lg mb-4 welcome-note">
+        <h2 class="text-2xl font-bold mb-2">Bem-vindo(a) ao Gerador de Plano de Aula Diário!</h2>
+        <p>Preencha os campos abaixo para criar o seu plano de aula de forma rápida e eficiente.</p>
+    </div>
+
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-4 text-gray-800 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-3 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5s3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.253" />
+            </svg>
+            Gerador de Plano de Aula Diário
+        </h1>
+        <p class="text-center text-gray-600 mb-2">(criado por Raul João)</p>
+        <!-- NEW: Advanced Model Note -->
+        <div class="text-center py-2 bg-green-100 text-green-800 rounded-md mb-6">
+            <p class="text-lg font-semibold">Modelo avançado</p>
+        </div>
+
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"> <!-- Increased gap -->
+            <div class="form-group">
+                <label for="nomeEscola">Nome da Escola:</label>
+                <input type="text" id="nomeEscola" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+            </div>
+            <div class="form-group">
+                <label for="disciplina">Disciplina:</label>
+                <select id="disciplina" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+                    <option value="">Selecione a Disciplina</option>
+                    <option value="Matemática">Matemática</option>
+                    <option value="Português">Português</option>
+                    <option value="História">História</option>
+                    <option value="Geografia">Geografia</option>
+                    <option value="Ciências Naturais">Ciências Naturais</option>
+                    <option value="Física">Física</option>
+                    <option value="Química">Química</option>
+                    <option value="Biologia">Biologia</option>
+                    <option value="Educação Física">Educação Física</option>
+                    <option value="Filosofia">Filosofia</option>
+                    <option value="Inglês">Inglês</option>
+                    <option value="Francês">Francês</option>
+                    <option value="TIC">TIC (Tecnologias de Informação e Comunicação)</option>
+                    <option value="Desenho">Desenho</option>
+                    <option value="Música">Música</option>
+                    <option value="Outra">Outra</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="unidadeTematica">Unidade Temática:</label>
+                <input type="text" id="unidadeTematica" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+            </div>
+            <div class="form-group">
+                <label for="tema">Tema da Aula:</label>
+                <input type="text" id="tema" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+            </div>
+            <div class="form-group">
+                <label for="classe">Classe:</label>
+                <select id="classe" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+                    <option value="">Selecione a Classe</option>
+                    <option value="1.ª Classe">1.ª Classe</option>
+                    <option value="2.ª Classe">2.ª Classe</option>
+                    <option value="3.ª Classe">3.ª Classe</option>
+                    <option value="4.ª Classe">4.ª Classe</option>
+                    <option value="5.ª Classe">5.ª Classe</option>
+                    <option value="6.ª Classe">6.ª Classe</option>
+                    <option value="7.ª Classe">7.ª Classe</option>
+                    <option value="8.ª Classe">8.ª Classe</option>
+                    <option value="9.ª Classe">9.ª Classe</option>
+                    <option value="10.ª Classe">10.ª Classe</option>
+                    <option value="11.ª Classe">11.ª Classe</option>
+                    <option value="12.ª Classe">12.ª Classe</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="dataAula">Data da Aula:</label>
+                <input type="date" id="dataAula" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md">
+            </div>
+            <div class="form-group col-span-1 md:col-span-2">
+                <label for="nomeProfessor">Nome do Professor:</label>
+                <input type="text" id="nomeProfessor" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md" placeholder="Ex: Professor João Silva">
+                <p class="mt-4 p-3 border-l-4 border-blue-500 bg-blue-50 text-blue-800 text-sm rounded-md">
+                    <strong>NOTA:</strong> O carregamento de imagens é opcional. É possível gerar o plano sem imagens.
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label for="imageUpload1">Carregar Imagem 1 (Conteúdo da Aula):</label>
+                <input type="file" id="imageUpload1" accept="image/*" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md p-1">
+                <div id="imagePreview1" class="mt-3 w-full h-32 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center text-gray-400 text-sm overflow-hidden bg-gray-50">
+                    Pré-visualização da Imagem 1
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="imageUpload2">Carregar Imagem 2 (Conteúdo da Aula):</label>
+                <input type="file" id="imageUpload2" accept="image/*" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 rounded-md p-1">
+                <div id="imagePreview2" class="mt-3 w-full h-32 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center text-gray-400 text-sm overflow-hidden bg-gray-50">
+                    Pré-visualização da Imagem 2
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+            <button id="generatePlanBtn" class="btn-primary flex items-center justify-center">
+                <span id="buttonText">Gerar Plano de Aula</span>
+                <div id="loadingSpinner" class="spinner ml-3 hidden"></div>
+            </button>
+            <button id="aboutAppBtn" class="btn-secondary flex items-center justify-center">
+                Sobre a Aplicação
+            </button>
+        </div>
+
+        <div id="planOutput" class="mt-8 hidden">
+            </div>
+
+        <!-- Buttons for detailed info and methodological suggestions -->
+        <div id="additionalActions" class="flex flex-col sm:flex-row justify-center gap-4 mt-8">
+            <button id="showDetailedInfoBtn" class="btn-secondary flex items-center justify-center hidden">
+                Ver Informação Detalhada sobre o Tema
+            </button>
+            <button id="suggestMethodologiesBtn" class="btn-primary flex items-center justify-center hidden">
+                Sugestões Metodológicas da Aula
+            </button>
+        </div>
+
+        <!-- Save buttons -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4 mt-4">
+            <button id="saveWordBtn" class="btn-secondary flex items-center justify-center hidden">
+                Guardar como Word
+            </button>
+            <button id="saveImageBtn" class="btn-secondary flex items-center justify-center hidden">
+                Guardar como Imagem (PNG)
+            </button>
+            <button id="savePdfBtn" class="btn-secondary flex items-center justify-center hidden">
+                Guardar como PDF
+            </button>
+        </div>
+
+
+        <div id="errorMessage" class="text-red-600 text-center mt-4 hidden">
+            Ocorreu um erro ao gerar o plano de aula. Por favor, tente novamente.
+        </div>
+    </div>
+
+    <div id="aboutAppModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button" id="closeAboutAppModal">&times;</span>
+            <h2 class="text-2xl font-bold mb-1 text-center">Sobre o Gerador de Plano de Aula</h2>
+            <p class="text-center text-gray-600 mb-4">(criado por Raul João)</p>
+            <p class="text-gray-700 mb-4 text-center">Esta aplicação foi desenvolvida para auxiliar professores na criação rápida e eficiente de planos de aula diários, alinhados ao currículo de Moçambique e utilizando a Taxonomia de Bloom para os objetivos de aprendizagem.</p>
+            <div class="creator-credits">
+                <p>Desenvolvido por:</p>
+                <p><strong>Raul João</strong></p>
+                <p>Contactos: <strong>845413330 / 865413331</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Info Modal -->
+    <div id="detailedInfoModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button" id="closeDetailedInfoModal">&times;</span>
+            <h2 class="text-2xl font-bold mb-4 text-center">Informação Detalhada sobre o Tema</h2>
+            <div id="detailedInfoContent" class="text-gray-700 leading-relaxed max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-md bg-gray-50">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Methodology Suggestions Modal -->
+    <div id="methodologySuggestionsModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button" id="closeMethodologySuggestionsModal">&times;</span>
+            <h2 class="text-2xl font-bold mb-4 text-center">Sugestões Metodológicas</h2>
+            <div id="methodologySuggestionsContent" class="text-gray-700 leading-relaxed max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-md bg-gray-50">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Contribution Note at the bottom of the page -->
+    <div class="contribution-note container text-center py-4 bg-yellow-50 text-yellow-800 rounded-lg mt-8 mb-4">
+        <h3 class="text-xl font-bold mb-2">Apoie o Desenvolvimento!</h3>
+        <p class="mb-1">Prezados utilizadores, saudações. Com o intuito de assegurar o contínuo aperfeiçoamento desta plataforma, apelamos à vossa colaboração por meio de uma contribuição voluntária, que permitirá manter e melhorar os recursos aqui disponibilizados.</p>
+        <p class="font-semibold text-lg mb-1">M-Pesa: <span class="text-green-600">845413330</span></p>
+        <p class="font-semibold text-lg">e-Mola: <span class="text-green-600">865413331</span></p>
+        <p class="mt-2">Em nome de: <strong>Raul João</strong></p>
+    </div>
+
+    <script type="module">
+        // Importar as bibliotecas Firebase necessárias para autenticação.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+
+        // Variáveis globais do ambiente Canvas (serão indefinidas no seu servidor, tratadas abaixo)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // **** ATENÇÃO: PARA EXECUTAR NO SEU PRÓPRIO SERVIDOR, INSIRA A SUA CHAVE DE API DO GOOGLE GEMINI AQUI ****
+        // Obtenha a sua chave em https://aistudio.google.com/app/apikey
+        // IMPORTANTE: Em produção, esta chave deve ser carregada de forma segura (ex: variáveis de ambiente, backend).
+        const geminiApiKey = "AIzaSyCz3ciyVpjqoqLYQ7L5OZQHY0VpCzk17SM"; // <-- A SUA CHAVE FOI ATUALIZADA AQUI!
+
+        // Inicializar jsPDF globalmente
+        window.jsPDF = window.jspdf.jsPDF;
+
+        // Inicializar Firebase (apenas para autenticação, se necessário)
+        let app;
+        let auth;
+        let userId = null;
+        let currentPlanData = null; // Armazenar os dados do plano gerado globalmente
+
+        // Apenas inicializa o Firebase se a configuração for fornecida (como no ambiente Canvas)
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+
+            // Autenticar o utilizador
+            (async () => {
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                    userId = auth.currentUser?.uid || crypto.randomUUID();
+                    console.log("Firebase autenticado. ID do Utilizador:", userId);
+                } catch (error) {
+                    console.error("Erro na autenticação Firebase:", error);
+                    userId = crypto.randomUUID(); // Fallback para ID aleatório
+                }
+            })();
+        } else {
+            console.warn("Configuração do Firebase não fornecida. A autenticação não estará disponível.");
+            userId = crypto.randomUUID(); // Gera um ID aleatório se o Firebase não estiver configurado
+        }
+
+        const generatePlanBtn = document.getElementById('generatePlanBtn');
+        const saveWordBtn = document.getElementById('saveWordBtn');
+        const saveImageBtn = document.getElementById('saveImageBtn');
+        const savePdfBtn = document.getElementById('savePdfBtn');
+        const aboutAppBtn = document.getElementById('aboutAppBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const buttonText = document.getElementById('buttonText');
+        const planOutput = document.getElementById('planOutput');
+        const errorMessage = document.getElementById('errorMessage');
+
+        const aboutAppModal = document.getElementById('aboutAppModal');
+        const closeAboutAppModal = document.getElementById('closeAboutAppModal');
+
+        // Elements for detailed info and methodological suggestions
+        const showDetailedInfoBtn = document.getElementById('showDetailedInfoBtn');
+        const detailedInfoModal = document.getElementById('detailedInfoModal');
+        const closeDetailedInfoModal = document.getElementById('closeDetailedInfoModal');
+        const detailedInfoContent = document.getElementById('detailedInfoContent');
+
+        const suggestMethodologiesBtn = document.getElementById('suggestMethodologiesBtn');
+        const methodologySuggestionsModal = document.getElementById('methodologySuggestionsModal');
+        const closeMethodologySuggestionsModal = document.getElementById('closeMethodologySuggestionsModal');
+        const methodologySuggestionsContent = document.getElementById('methodologySuggestionsContent');
+
+
+        // Elementos de upload e pré-visualização de imagem
+        const imageUpload1 = document.getElementById('imageUpload1');
+        const imagePreview1 = document.getElementById('imagePreview1');
+        const imageUpload2 = document.getElementById('imageUpload2');
+        const imagePreview2 = document.getElementById('imageUpload2');
+
+        // Função para pré-visualizar imagens selecionadas
+        function previewImage(input, previewElement) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewElement.innerHTML = `<img src="${e.target.result}" class="max-w-full max-h-full object-contain" alt="Pré-visualização da Imagem">`;
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                // Reset to placeholder text if no image
+                if (previewElement.id === 'imagePreview1') {
+                    previewElement.innerHTML = 'Pré-visualização da Imagem 1';
+                } else if (previewElement.id === 'imagePreview2') {
+                    previewElement.innerHTML = 'Pré-visualização da Imagem 2';
+                }
+            }
+        }
+
+        // Event listeners para os campos de upload de imagem
+        imageUpload1.addEventListener('change', () => previewImage(imageUpload1, imagePreview1));
+        imageUpload2.addEventListener('change', () => previewImage(imageUpload2, imagePreview2));
+
+
+        // Função para formatar a data para Português de Portugal
+        function formatarDataPT(dataStr) {
+            if (!dataStr) return '';
+            const [ano, mes, dia] = dataStr.split('-');
+            const data = new Date(ano, mes - 1, dia);
+            const opcoes = { day: '2-digit', month: 'long', year: 'numeric' };
+            return data.toLocaleDateString('pt-PT', opcoes);
+        }
+
+        // Função para preparar o conteúdo para exportação (Word/PDF/Imagem)
+        function prepareContentForExport() {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = planOutput.innerHTML; // Clona o conteúdo atual
+
+            // Remove os botões de ação adicionais ao exportar
+            const additionalActionsDiv = tempDiv.querySelector('#additionalActions');
+            if (additionalActionsDiv) {
+                additionalActionsDiv.remove();
+            }
+
+            // Remove os botões de guardar ao exportar
+            const saveButtonsDiv = tempDiv.querySelector('.flex.flex-col.sm\\:flex-row.justify-center.gap-4.mt-4');
+            if (saveButtonsDiv) {
+                saveButtonsDiv.remove();
+            }
+
+            // A seção de notas detalhadas e sugestões metodológicas não são mais textareas no output
+            // O conteúdo é obtido de currentPlanData para exportação
+            const notesSectionHtml = `
+                <div class="notes-section mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3 text-center">Informação Detalhada sobre o Tema</h3>
+                    <div class="w-full p-3 border border-gray-300 rounded-md font-size: 0.9rem; line-height: 1.5; background-color: #ffffff; white-space: pre-wrap;">${currentPlanData.header.additionalNotes.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+
+            const methodologySectionHtml = `
+                <div class="notes-section mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3 text-center">Sugestões Metodológicas</h3>
+                    <div class="w-full p-3 border border-gray-300 rounded-md font-size: 0.9rem; line-height: 1.5; background-color: #ffffff; white-space: pre-wrap;">${currentPlanData.header.methodologicalSuggestions.replace(/\n/g, '<br>')}</div>
+                </div>
+            `;
+
+            tempDiv.innerHTML += notesSectionHtml + methodologySectionHtml;
+
+            return tempDiv;
+        }
+
+        // Função para guardar como Imagem
+        async function savePlanAsImage() {
+            const currentTema = document.getElementById('tema').value || 'Plano de Aula';
+            const fileName = `Plano de Aula - ${currentTema}.png`;
+
+            // Esconder temporariamente os botões para uma captura de imagem mais limpa
+            saveWordBtn.style.visibility = 'hidden';
+            saveImageBtn.style.visibility = 'hidden';
+            savePdfBtn.style.visibility = 'hidden';
+            showDetailedInfoBtn.style.visibility = 'hidden';
+            suggestMethodologiesBtn.style.visibility = 'hidden';
+
+
+            const contentToExport = prepareContentForExport();
+            document.body.appendChild(contentToExport); // Adiciona temporariamente ao DOM para html2canvas
+
+            try {
+                const canvas = await html2canvas(contentToExport, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                // Criar um elemento de link temporário para acionar o download
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+            } catch (error) {
+                console.error("Erro ao guardar como imagem:", error);
+                errorMessage.textContent = "Ocorreu um erro ao guardar a imagem do plano. Tente novamente.";
+                errorMessage.classList.remove('hidden');
+            } finally {
+                document.body.removeChild(contentToExport); // Remove o conteúdo temporário
+                // Restaurar a visibilidade dos botões
+                saveWordBtn.style.visibility = 'visible';
+                saveImageBtn.style.visible = 'visible';
+                savePdfBtn.style.visibility = 'visible';
+                showDetailedInfoBtn.style.visibility = 'visible';
+                suggestMethodologiesBtn.style.visibility = 'visible';
+            }
+        }
+
+        // Função principal para gerar o plano de aula
+        async function generatePlan() {
+            const nomeEscola = document.getElementById('nomeEscola').value;
+            const disciplina = document.getElementById('disciplina').value;
+            const unidadeTematica = document.getElementById('unidadeTematica').value;
+            const tema = document.getElementById('tema').value;
+            const classe = document.getElementById('classe').value;
+            const nomeProfessor = document.getElementById('nomeProfessor').value;
+            const dataAulaInput = document.getElementById('dataAula').value;
+            const dataFormatada = formatarDataPT(dataAulaInput);
+
+            if (!nomeEscola || !disciplina || !unidadeTematica || !tema || !classe || !nomeProfessor || !dataAulaInput) {
+                errorMessage.textContent = "Por favor, preencha todos os campos obrigatórios.";
+                errorMessage.classList.remove('hidden');
+                return;
+            } else {
+                errorMessage.classList.add('hidden');
+            }
+
+            if (geminiApiKey === "SUA_CHAVE_DE_API_AQUI" || !geminiApiKey) {
+                errorMessage.textContent = "Por favor, insira a sua chave da API do Google Gemini no código para gerar o plano.";
+                errorMessage.classList.remove('hidden');
+                return;
+            }
+
+            buttonText.textContent = "A gerar...";
+            loadingSpinner.classList.remove('hidden');
+            generatePlanBtn.disabled = true;
+            saveWordBtn.classList.add('hidden');
+            saveImageBtn.classList.add('hidden');
+            savePdfBtn.classList.add('hidden');
+            planOutput.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            showDetailedInfoBtn.classList.add('hidden');
+            suggestMethodologiesBtn.classList.add('hidden');
+
+            const imageFiles = [];
+            if (imageUpload1.files[0]) imageFiles.push(imageUpload1.files[0]);
+            if (imageUpload2.files[0]) imageFiles.push(imageUpload2.files[0]);
+
+            const imageParts = [];
+            for (const file of imageFiles) {
+                const base64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result.split(',')[1]);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+                imageParts.push({
+                    inlineData: {
+                        mimeType: file.type,
+                        data: base64
+                    }
+                });
+            }
+
+            try {
+                let promptText = `Gere um plano de aula diário detalhado para Moçambique, utilizando Português de Portugal, seguindo estritamente a estrutura e o formato de tabela da imagem fornecida.
+                Certifique-se de que a secção de "Exercícios" esteja **incluída** dentro da linha correspondente à "Domínio e Consolidação" na tabela principal, e a secção de "TPC (Trabalho Para Casa)" esteja **incluída** dentro da linha correspondente à "Controlo e Avaliação", conforme o modelo da imagem.
+
+                Use os seguintes dados de entrada:
+                - Nome da Escola: ${nomeEscola}
+                - Disciplina: ${disciplina}
+                - Unidade Temática: ${unidadeTematica}
+                - Tema: ${tema}
+                - Classe: ${classe}
+                - Professor: ${nomeProfessor}
+                - Data: ${dataFormatada}
+                - Duração da Aula: 45' (Padrão)
+                - Tipo de Aula: Normal (Padrão)
+                - Tempo Efetivo: 45' (Padrão)
+
+                Gere 3 objetivos específicos enquadrados na Taxonomia de Bloom (utilizando verbos adequados como "Identificar", "Descrever", "Analisar", "Aplicar", "Criar", etc., de diferentes níveis) que sejam relevantes para o tema e a classe, e que estejam alinhados com o plano curricular de Moçambique.
+
+                O plano deve conter as quatro partes essenciais como linhas da mesma tabela:
+                1.  Revisão e Motivação (aprox. 5')
+                2.  Mediação e Assimilação (aprox. 25') - Para esta secção, inclua um pequeno resumo/apontamento do tema em estudo nos Conteúdos.
+                3.  Domínio e Consolidação (aprox. 10') - Esta linha deve incluir os exercícios.
+                4.  Controlo e Avaliação (aprox. 5') - Esta linha deve incluir o TPC.
+
+                Para cada linha da tabela (correspondente a cada uma das 4 partes), forneça:
+                - Tempo (formato 'X''')
+                - Função Didática (ex: "Revisão e Motivação", "Domínio e Consolidação")
+                - Conteúdos (em lista, relevantes ao tema e classe. **Para Domínio e Consolidação, inclua "Exercícios:" seguido dos detalhes. Para Controlo e Avaliação, inclua "TPC:" seguido dos detalhes.**)
+                - Atividades do Professor (em lista, o que o professor fará)
+                - Atividades do Aluno (em lista, o que o aluno fará)
+                - Método (ex: Elaboração Conjunta, Trabalho Independente, Aula Expositiva, etc.)
+                - Meios (em lista, materiais necessários. **Para Domínio e Consolidação e Controlo e Avaliação, inclua os meios específicos para exercícios e TPC aqui, respetivamente.**)
+
+                Além disso, gere uma seção de "Apontamentos Adicionais" que contenha uma quantidade substancial de informação detalhada e abrangente sobre o tema ou assunto tratado, como um texto corrido e informativo.
+                E, por favor, gere uma seção de "Sugestões Metodológicas" que forneça orientações práticas sobre como abordar o tema da aula, incluindo estratégias de ensino, atividades interativas e uso de recursos, formatada como um texto corrido e informativo.
+                `;
+
+                if (imageParts.length > 0) {
+                    promptText += `Analise o conteúdo visual das imagens fornecidas e incorpore informações relevantes delas na geração do plano de aula, na secção de "Informação Detalhada sobre o Tema" e nas "Sugestões Metodológicas".`;
+                }
+
+                promptText += `\n\nO output deve ser um objeto JSON formatado para ser renderizado numa tabela HTML.
+                As listas de conteúdos, atividades e meios devem ser arrays de strings.
+                A data deve ser formatada como "Dia de Mês de Ano".
+
+                Exemplo de estrutura JSON esperada (note que 'exercicios' e 'tpc' não são top-level, mas partes de 'sections'):
+                ${JSON.stringify({
+                    "header": {
+                        "data": "STRING",
+                        "unidadeEscolar": "STRING",
+                        "disciplina": "STRING",
+                        "unidadeTematica": "STRING",
+                        "tema": "STRING",
+                        "objetivosAprendizagem": ["STRING", "STRING", "STRING"],
+                        "duracao": "STRING",
+                        "tipoAula": "STRING",
+                        "tempoEfetivo": "STRING",
+                        "professor": "STRING",
+                        "additionalNotes": "STRING",
+                        "methodologicalSuggestions": "STRING"
+                    },
+                    "sections": [
+                        {
+                            "tempo": "STRING",
+                            "funcaoDidatica": "Revisão e Motivação",
+                            "conteudos": ["STRING"],
+                            "atividadesProfessor": ["STRING"],
+                            "atividadesAluno": ["STRING"],
+                            "metodo": "STRING",
+                            "meios": ["STRING"]
+                        },
+                        {
+                            "tempo": "STRING",
+                            "funcaoDidatica": "Mediação e Assimilação",
+                            "conteudos": ["STRING", "Pequeno resumo do tema..."],
+                            "atividadesProfessor": ["STRING"],
+                            "atividadesAluno": ["STRING"],
+                            "metodo": "STRING",
+                            "meios": ["STRING"]
+                        },
+                        {
+                            "tempo": "STRING",
+                            "funcaoDidatica": "Domínio e Consolidação",
+                            "conteudos": ["STRING", "Exercícios:", "1. Exemplo de exercício..."],
+                            "atividadesProfessor": ["STRING", "Professor: orienta o exercício..."],
+                            "atividadesAluno": ["STRING", "Aluno: resolve o exercício..."],
+                            "metodo": "STRING",
+                            "meios": ["STRING", "Caderno, Esferográfica..."]
+                        },
+                        {
+                            "tempo": "STRING",
+                            "funcaoDidatica": "Controlo e Avaliação",
+                            "conteudos": ["STRING", "TPC:", "1. Exemplo de TPC..."],
+                            "atividadesProfessor": ["STRING", "Professor: atribui o TPC..."],
+                            "atividadesAluno": ["STRING", "Aluno: anota o TPC..."],
+                            "metodo": "STRING",
+                            "meios": ["STRING", "Caderno, Material de estudo..."]
+                        }
+                    ]
+                }, null, 2)}
+                `;
+
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: promptText }, ...imageParts] });
+                const payload = {
+                    contents: chatHistory,
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                header: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        data: { "type": "STRING" },
+                                        unidadeEscolar: { "type": "STRING" },
+                                        disciplina: { "type": "STRING" },
+                                        unidadeTematica: { "type": "STRING" },
+                                        tema: { "type": "STRING" },
+                                        objetivosAprendizagem: {
+                                            type: "ARRAY",
+                                            items: { "type": "STRING" }
+                                        },
+                                        duracao: { "type": "STRING" },
+                                        tipoAula: { "type": "STRING" },
+                                        tempoEfetivo: { "type": "STRING" },
+                                        professor: { "type": "STRING" },
+                                        additionalNotes: { "type": "STRING" },
+                                        methodologicalSuggestions: { "type": "STRING" }
+                                    },
+                                    required: ["data", "unidadeEscolar", "disciplina", "unidadeTematica", "tema", "objetivosAprendizagem", "duracao", "tipoAula", "tempoEfetivo", "professor", "additionalNotes", "methodologicalSuggestions"]
+                                },
+                                sections: {
+                                    type: "ARRAY",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            tempo: { "type": "STRING" },
+                                            funcaoDidatica: { "type": "STRING" },
+                                            conteudos: {
+                                                type: "ARRAY",
+                                                items: { "type": "STRING" }
+                                            },
+                                            atividadesProfessor: {
+                                                type: "ARRAY",
+                                                items: { "type": "STRING" }
+                                            },
+                                            atividadesAluno: {
+                                                type: "ARRAY",
+                                                items: { "type": "STRING" }
+                                            },
+                                            metodo: { "type": "STRING" },
+                                            meios: {
+                                                type: "ARRAY",
+                                                items: { "type": "STRING" }
+                                            }
+                                        },
+                                        required: ["tempo", "funcaoDidatica", "conteudos", "atividadesProfessor", "atividadesAluno", "metodo", "meios"]
+                                    }
+                                }
+                            },
+                            required: ["header", "sections"]
+                        }
+                    }
+                };
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    currentPlanData = JSON.parse(jsonString);
+                    renderPlan(currentPlanData);
+                    saveWordBtn.classList.remove('hidden');
+                    saveImageBtn.classList.remove('hidden');
+                    savePdfBtn.classList.remove('hidden');
+                    showDetailedInfoBtn.classList.remove('hidden');
+                    suggestMethodologiesBtn.classList.remove('hidden');
+
+                    await savePlanAsImage();
+
+                } else {
+                    console.error("Estrutura de resposta inesperada da API:", result);
+                    errorMessage.textContent = "Não foi possível gerar o plano. Tente ser mais específico no tema.";
+                    errorMessage.classList.remove('hidden');
+                }
+
+            } catch (error) {
+                console.error("Erro ao chamar a API ou processar o JSON:", error);
+                errorMessage.textContent = "Ocorreu um erro técnico ao gerar o plano de aula. Por favor, verifique a sua ligação ou tente novamente.";
+                errorMessage.classList.remove('hidden');
+            } finally {
+                buttonText.textContent = "Gerar Plano de Aula";
+                loadingSpinner.classList.add('hidden');
+                generatePlanBtn.disabled = false;
+            }
+        }
+
+        // Event listener para o botão "Gerar Plano de Aula"
+        generatePlanBtn.addEventListener('click', generatePlan);
+
+        // Event listener for "Ver Informação Detalhada sobre o Tema" button
+        showDetailedInfoBtn.addEventListener('click', () => {
+            if (currentPlanData && currentPlanData.header && currentPlanData.header.additionalNotes) {
+                detailedInfoContent.innerHTML = currentPlanData.header.additionalNotes.replace(/\n/g, '<br>');
+            } else {
+                detailedInfoContent.innerHTML = "<p>Nenhuma informação detalhada gerada ainda. Gere um plano de aula primeiro.</p>";
+            }
+            detailedInfoModal.classList.remove('hidden');
+        });
+
+        closeDetailedInfoModal.addEventListener('click', () => {
+            detailedInfoModal.classList.add('hidden');
+        });
+
+        // Event listener for "Sugestões Metodológicas da Aula" button (now just displays pre-generated content)
+        suggestMethodologiesBtn.addEventListener('click', () => {
+            if (currentPlanData && currentPlanData.header && currentPlanData.header.methodologicalSuggestions) {
+                methodologySuggestionsContent.innerHTML = currentPlanData.header.methodologicalSuggestions.replace(/\n/g, '<br>');
+            } else {
+                methodologySuggestionsContent.innerHTML = "<p>Nenhuma sugestão metodológica gerada ainda. Gere um plano de aula primeiro.</p>";
+            }
+            methodologySuggestionsModal.classList.remove('hidden');
+        });
+
+        closeMethodologySuggestionsModal.addEventListener('click', () => {
+            methodologySuggestionsModal.classList.add('hidden');
+        });
+
+
+        // Handler do botão Guardar como Word
+        saveWordBtn.addEventListener('click', () => {
+            const currentTema = document.getElementById('tema').value || 'Plano de Aula';
+            const fileName = `Plano de Aula - ${currentTema}.doc`;
+
+            const contentToExportDiv = prepareContentForExport();
+            const planContent = contentToExportDiv.innerHTML;
+
+            // Estrutura HTML básica para o documento Word
+            const htmlContent = `
+                <!DOCTYPE html>
+                <html lang="pt">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+                    <title>${currentTema}</title>
+                    <style>
+                        @page {
+                            size: A4 landscape; /* Definir página como A4 paisagem */
+                            margin: 1.5cm; /* Margens consistentes */
+                        }
+                        body { font-family: 'Inter', sans-serif; color: #333; }
+                        h2 { font-size: 16pt; font-weight: bold; text-align: center; margin-top: 18pt; margin-bottom: 9pt; color: #2d3748; }
+
+                        .plan-header-grid {
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 5pt 20pt; /* Espaçamento para impressão */
+                            margin-bottom: 15pt;
+                            font-size: 10.5pt; /* Tamanho da fonte para impressão */
+                            page-break-after: avoid;
+                        }
+                        .plan-header-item {
+                            padding: 2pt 0;
+                            line-height: 1.4;
+                        }
+                        .plan-header-item strong {
+                            display: inline;
+                            color: #2d3748;
+                            margin-right: 2pt;
+                        }
+                        .plan-header-objectives {
+                            grid-column: span 2;
+                            padding: 5pt 0;
+                        }
+                        .plan-header-objectives strong {
+                            display: block;
+                            margin-bottom: 5pt;
+                        }
+                        .plan-header-objectives ul {
+                            list-style-type: disc;
+                            margin-left: 15pt;
+                            padding-left: 0;
+                            font-size: 10pt;
+                        }
+                        .plan-header-objectives ul li {
+                            margin-bottom: 2pt;
+                        }
+
+                        .plan-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 10pt;
+                            border: 2px solid #000;
+                            page-break-inside: auto;
+                        }
+                        .plan-table th, .plan-table td {
+                            border: 1px solid #000;
+                            padding: 8pt;
+                            text-align: left;
+                            vertical-align: top;
+                            font-size: 9pt;
+                        }
+                        .plan-table th {
+                            background-color: #e2e8f0;
+                            font-weight: bold;
+                            color: #2d3748;
+                            white-space: nowrap;
+                        }
+                        .plan-table ul { list-style-type: disc; margin-left: 15pt; padding-left: 0; font-size: 8.5pt;}
+                        .plan-table ul li { margin-bottom: 2pt; }
+
+                        /* Specific column widths for the main table to match image */
+                        .plan-table th:nth-child(1), .plan-table td:nth-child(1) { width: 8%; } /* Tempo */
+                        .plan-table th:nth-child(2), .plan-table td:nth-child(2) { width: 12%; } /* Função Didática */
+                        .plan-table th:nth-child(3), .plan-table td:nth-child(3) { width: 20%; } /* Conteúdos */
+                        .plan-table th:nth-child(4), .plan-table td:nth-child(4) { width: 20%; } /* Atividades do Professor */
+                        .plan-table th:nth-child(5), .plan-table td:nth-child(5) { width: 20%; } /* Atividades do Aluno */
+                        .plan-table th:nth-child(6), .plan-table td:nth-child(6) { width: 10%; } /* Método */
+                        .plan-table th:nth-child(7), .plan-table td:nth-child(7) { width: 10%; } /* Meios */
+
+                        .creator-credits {
+                            margin-top: 18pt;
+                            padding: 9pt;
+                            text-align: center;
+                            font-size: 8.5pt;
+                            color: #6b7280;
+                            border-top: 1px solid #e2e8f0;
+                        }
+                        .creator-credits strong {
+                            color: #4a5568;
+                        }
+                        .notes-section {
+                            margin-top: 2rem;
+                            padding: 1rem;
+                            background-color: #f8fafc;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 0.5rem;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                        }
+                        .notes-section div { /* Changed from textarea to div for export */
+                            width: 100%;
+                            padding: 0.75rem;
+                            border: 1px solid #cbd5e0;
+                            border-radius: 0.375rem;
+                            font-size: 0.9rem;
+                            line-height: 1.5;
+                            background-color: #ffffff;
+                            white-space: pre-wrap; /* To preserve line breaks */
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${planContent}
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([htmlContent], { type: 'application/msword;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        });
+
+        // Handler do botão Guardar como Imagem (agora chama a função reutilizável)
+        saveImageBtn.addEventListener('click', savePlanAsImage);
+
+        // Handler do botão Guardar como PDF
+        savePdfBtn.addEventListener('click', async () => {
+            const currentTema = document.getElementById('tema').value || 'Plano de Aula';
+            const fileName = `Plano de Aula - ${currentTema}.pdf`;
+
+            // Esconder temporariamente os botões para uma captura de imagem mais limpa
+            saveWordBtn.style.visibility = 'hidden';
+            saveImageBtn.style.visibility = 'hidden';
+            savePdfBtn.style.visibility = 'hidden';
+            showDetailedInfoBtn.style.visibility = 'hidden';
+            suggestMethodologiesBtn.style.visibility = 'hidden';
+
+            const contentToExportDiv = prepareContentForExport();
+            document.body.appendChild(contentToExportDiv); // Adiciona temporariamente ao DOM para html2canvas
+
+            try {
+                const canvas = await html2canvas(contentToExportDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('landscape', 'mm', 'a4'); // A4 paisagem
+
+                const imgWidth = pdf.internal.pageSize.getWidth(); // Largura da página PDF
+                const pageHeight = pdf.internal.pageSize.getHeight(); // Altura da página PDF
+                const imgHeight = canvas.height * imgWidth / canvas.width; // Altura da imagem escalada para a largura da página
+
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                // Adiciona a primeira imagem
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                // Adiciona páginas adicionais se o conteúdo for maior que uma página
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight; // Calcula a posição para a próxima página
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save(fileName);
+
+            } catch (error) {
+                console.error("Erro ao guardar como PDF:", error);
+                errorMessage.textContent = "Ocorreu um erro ao guardar o PDF do plano. Tente novamente.";
+                errorMessage.classList.remove('hidden');
+            } finally {
+                document.body.removeChild(contentToExportDiv); // Remove o conteúdo temporário
+                // Restaurar a visibilidade dos botões
+                saveWordBtn.style.visibility = 'visible';
+                saveImageBtn.style.visibility = 'visible';
+                savePdfBtn.style.visibility = 'visible';
+                showDetailedInfoBtn.style.visibility = 'visible';
+                suggestMethodologiesBtn.style.visibility = 'visible';
+            }
+        });
+
+        // Handler do botão Sobre a Aplicação
+        aboutAppBtn.addEventListener('click', () => {
+            aboutAppModal.classList.remove('hidden');
+        });
+
+        closeAboutAppModal.addEventListener('click', () => {
+            aboutAppModal.classList.add('hidden');
+        });
+
+        function renderPlan(planData) {
+            const header = planData.header;
+            const sections = planData.sections;
+
+            // HTML do Cabeçalho (Parte 1 - Sem bordas, como na imagem)
+            let headerHtml = `
+                <h2>Plano de Aula Diário</h2>
+                <div class="plan-header-grid">
+                    <div class="plan-header-item"><strong>Unidade Escolar:</strong> ${header.unidadeEscolar}</div>
+                    <div class="plan-header-item"><strong>Data:</strong> ${header.data}</div>
+                    <div class="plan-header-item"><strong>Disciplina:</strong> ${header.disciplina}</div>
+                    <div class="plan-header-item"><strong>Duração da Aula:</strong> ${header.duracao}</div>
+                    <div class="plan-header-item"><strong>Unidade Temática:</strong> ${header.unidadeTematica}</div>
+                    <div class="plan-header-item"><strong>Tema:</strong> ${header.tema}</div>
+                    <div class="plan-header-item"><strong>Classe:</strong> ${document.getElementById('classe').value}</div>
+                    <div class="plan-header-item"><strong>Tipo de Aula:</strong> ${header.tipoAula}</div>
+                    <div class="plan-header-item"><strong>Tempo Efetivo:</strong> ${header.tempoEfetivo}</div>
+                    <div class="plan-header-item"><strong>Professor:</strong> ${header.professor}</div>
+                    <div class="plan-header-objectives">
+                        <strong>Objetivos Específicos:</strong>
+                        <ul class="list-disc ml-6">
+                            ${header.objetivosAprendizagem.map(obj => `<li>${obj}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+            `;
+
+            // HTML da Tabela Principal (Partes 2, 3 e 4 integradas)
+            let mainTableHtml = `
+                <h2>Corpo do Plano de Aula</h2>
+                <table class="plan-table">
+                    <thead>
+                        <tr>
+                            <th>Tempo</th>
+                            <th>Função Didática</th>
+                            <th>Conteúdos</th>
+                            <th>Atividades do Professor</th>
+                            <th>Atividades do Aluno</th>
+                            <th>Método</th>
+                            <th>Meios</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sections.map(section => `
+                            <tr>
+                                <td>${section.tempo}</td>
+                                <td>${section.funcaoDidatica}</td>
+                                <td><ul>${section.conteudos.map(c => `<li>${c}</li>`).join('')}</ul></td>
+                                <td><ul>${section.atividadesProfessor.map(ap => `<li>${ap}</li>`).join('')}</ul></td>
+                                <td><ul>${section.atividadesAluno.map(aa => `<li>${aa}</li>`).join('')}</ul></td>
+                                <td>${section.metodo}</td>
+                                <td><ul>${section.meios.map(m => `<li>${m}</li>`).join('')}</ul></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            // HTML dos Créditos do Criador
+            let creatorCreditsHtml = `
+                <div class="creator-credits">
+                    <p>Criador: <strong>Raul João</strong></p>
+                    <p>Contactos: <strong>845413330 / 865413331</strong></p>
+                </div>
+            `;
+
+            planOutput.innerHTML = headerHtml + mainTableHtml + creatorCreditsHtml;
+            planOutput.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
